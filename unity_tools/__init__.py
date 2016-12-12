@@ -33,7 +33,9 @@ class UnityBatchExportPanel(bpy.types.Panel):
         col.label(text="Batch export:")
         col.prop(context.scene, 'pea_batch_export_path')
         row = col.row(align=True)
-        row.operator("pea.batch_export", text="Batch Export", icon='EXPORT')
+        row.operator("pea.batch_export", text="Batch Export Objects", icon='EXPORT')
+        row = col.row(align=True)
+        row.operator("pea.batch_export_layers", text="Batch Export Layers", icon='EXPORT')
 
         # reset scale
         col = layout.column(align=True)
@@ -83,6 +85,51 @@ class UnityBatchExportPanel(bpy.types.Panel):
         row = col.row(align=True)
         row.operator("pea.freeze_loc", text="Freeze Location", icon='FILE_REFRESH')
         row.operator("pea.freeze_rot_scale", text="Freeze Rotation+Scale", icon='FILE_REFRESH')
+
+
+class PeaBatchExportLayers(bpy.types.Operator):
+    bl_idname = "pea.batch_export_layers"
+    bl_label = "Choose Directory"
+
+    def execute(self, context):
+        print ("execute Pea_batch_export_layers")
+
+        basedir = os.path.dirname(bpy.data.filepath)
+        if not basedir:
+            raise Exception("Blend file is not saved")
+
+        if context.scene.pea_batch_export_path == "":
+            raise Exception("Export path not set")
+
+        # select all visible meshes
+        mesh=[]
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_by_type(type='MESH')
+        col = bpy.context.selected_objects
+
+        # convert path to windows friendly notation
+        dir = os.path.dirname(bpy.path.abspath(context.scene.pea_batch_export_path))
+        # cursor to origin
+        bpy.context.scene.cursor_location = (0.0, 0.0, 0.0)
+
+        layers = bpy.context.scene.layers
+
+        for i,l in enumerate(layers):
+            if l:
+            
+                for o in bpy.data.objects:
+                    o.select = o.layers[i]
+                
+                dir = os.path.dirname(bpy.path.abspath(context.scene.pea_batch_export_path))
+                name = "%02d" % i
+                fn = os.path.join(dir, name)
+            
+                # use mesh name for file name
+                print("exporting: " + fn)
+                # export fbx
+                bpy.ops.export_scene.fbx(filepath=fn + ".fbx", use_selection=True, axis_forward='-Z', axis_up='Y')
+
+        return {'FINISHED'}
 
 
 class PeaBatchExport(bpy.types.Operator):
@@ -273,6 +320,7 @@ def register():
     )
     bpy.utils.register_class(UnityBatchExportPanel)
     bpy.utils.register_class(PeaBatchExport)
+    bpy.utils.register_class(PeaBatchExportLayers)
     bpy.utils.register_class(PeaBlenderUnits)
     bpy.utils.register_class(PeaVertexSelect)
     bpy.utils.register_class(PeaEdgeSelect)
@@ -290,6 +338,7 @@ def unregister():
     del bpy.types.Scene.pea_batch_export_path
     bpy.utils.unregister_class(UnityBatchExportPanel)
     bpy.utils.unregister_class(PeaBatchExport)
+    bpy.utils.unregister_class(PeaBatchExportLayers)
     bpy.utils.unregister_class(PeaBlenderUnits)
     bpy.utils.unregister_class(PeaVertexSelect)
     bpy.utils.unregister_class(PeaEdgeSelect)
