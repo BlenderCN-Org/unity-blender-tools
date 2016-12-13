@@ -1,4 +1,5 @@
 import bpy
+import time
 import os
 
 bl_info = {
@@ -85,6 +86,76 @@ class UnityBatchExportPanel(bpy.types.Panel):
         row = col.row(align=True)
         row.operator("pea.freeze_loc", text="Freeze Location", icon='FILE_REFRESH')
         row.operator("pea.freeze_rot_scale", text="Freeze Rotation+Scale", icon='FILE_REFRESH')
+
+        # Bake tools
+        col = layout.column(align=True)
+        col.label(text="Bake tools")
+        row = col.row(align=True)
+        row.operator("bake.dirty_vertex_colors", text="Bake Dirty Vertex Colors", icon='FILE_REFRESH')
+        row.operator("bake.ambient_to_vertex_colors", text="Bake AO To Vertex Colors", icon='FILE_REFRESH')
+
+class BakeDirtyVertexColors(bpy.types.Operator):
+    bl_idname = "bake.dirty_vertex_colors"
+    bl_label = "Bake dirty vertex colors"
+
+    def execute(self, context):
+        
+        wm = bpy.context.window_manager
+        bpy.context.window.cursor_set('WAIT')
+        print ("execute " + self.bl_idname)
+        
+        tot = len(bpy.context.selected_editable_objects)
+        wm.progress_begin(0,tot)
+        i = 0
+        for ob in bpy.context.selected_editable_objects:
+            
+            i = i + 1
+            wm.progress_update(i)
+            time.sleep(1)
+            
+            if ob.type != "MESH":
+                continue
+            
+            bpy.data.brushes["Draw"].color = (1,1,1)
+            bpy.context.scene.objects.active = ob
+            bpy.ops.object.mode_set(mode='VERTEX_PAINT')
+            bpy.ops.paint.vertex_color_set()
+            bpy.ops.paint.vertex_color_dirt()
+            bpy.ops.object.mode_set(mode='OBJECT')
+        wm.progress_end()
+        bpy.context.window.cursor_set('DEFAULT')
+        return {'FINISHED'}
+
+class BakeAmbientToVertexColors(bpy.types.Operator):
+    bl_idname = "bake.ambient_to_vertex_colors"
+    bl_label = "Bake dirty vertex colors"
+
+    def execute(self, context):
+        wm = bpy.context.window_manager
+        bpy.context.window.cursor_set('WAIT')
+        
+        print ("execute " + self.bl_idname)
+        tot = len(bpy.context.selected_editable_objects)
+        wm.progress_begin(0,tot)
+        i = 0
+        for ob in bpy.context.selected_editable_objects:
+            i = i + 1
+            wm.progress_update(i)
+            time.sleep(1)
+            
+            if ob.type != "MESH":
+                continue
+            
+            was_hidden = ob.hide_render
+            ob.hide_render = False
+            bpy.context.scene.objects.active = ob
+            bpy.ops.object.mode_set(mode='VERTEX_PAINT')
+            bpy.ops.object.bake_image()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            ob.hide_render = was_hidden
+        wm.progress_end()
+        bpy.context.window.cursor_set('DEFAULT')
+        return {'FINISHED'}
 
 
 class PeaBatchExportLayers(bpy.types.Operator):
@@ -319,6 +390,8 @@ def register():
         subtype='DIR_PATH'
     )
     bpy.utils.register_class(UnityBatchExportPanel)
+    bpy.utils.register_class(BakeDirtyVertexColors)
+    bpy.utils.register_class(BakeAmbientToVertexColors)
     bpy.utils.register_class(PeaBatchExport)
     bpy.utils.register_class(PeaBatchExportLayers)
     bpy.utils.register_class(PeaBlenderUnits)
@@ -337,6 +410,8 @@ def register():
 def unregister():
     del bpy.types.Scene.pea_batch_export_path
     bpy.utils.unregister_class(UnityBatchExportPanel)
+    bpy.utils.unregister_class(BakeDirtyVertexColors)
+    bpy.utils.unregister_class(BakeAmbientToVertexColors)
     bpy.utils.unregister_class(PeaBatchExport)
     bpy.utils.unregister_class(PeaBatchExportLayers)
     bpy.utils.unregister_class(PeaBlenderUnits)
