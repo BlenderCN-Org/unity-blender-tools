@@ -138,6 +138,7 @@ class BakeAmbientToVertexColors(bpy.types.Operator):
         tot = len(bpy.context.selected_editable_objects)
         wm.progress_begin(0,tot)
         i = 0
+        bpy.data.brushes["Draw"].color = (1,1,1)
         for ob in bpy.context.selected_editable_objects:
             i = i + 1
             wm.progress_update(i)
@@ -150,6 +151,7 @@ class BakeAmbientToVertexColors(bpy.types.Operator):
             ob.hide_render = False
             bpy.context.scene.objects.active = ob
             bpy.ops.object.mode_set(mode='VERTEX_PAINT')
+            bpy.ops.paint.vertex_color_set()
             bpy.ops.object.bake_image()
             bpy.ops.object.mode_set(mode='OBJECT')
             ob.hide_render = was_hidden
